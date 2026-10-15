@@ -62,47 +62,69 @@ export default function AuthPage() {
     else setNotice('If that email has an account, a reset link is on its way.')
   }
 
+  const login = mode === 'login'
   return (
-    <main className="wrap narrow">
-      <h1>{mode === 'login' ? 'Log in' : 'Create your account'}</h1>
-      <p className="muted">
-        {mode === 'login'
-          ? 'Log in to post items and message other students.'
-          : 'Use a personal email so your account still works after you graduate.'}
-      </p>
-      <form onSubmit={submit} className="form">
-        {mode === 'signup' && (
-          <>
-            <label>Display name
-              <input value={f.name} onChange={set('name')} maxLength={40} autoComplete="nickname" required />
-            </label>
-            <label>Program
-              <input value={f.program} onChange={set('program')} maxLength={30} />
-            </label>
-            <label>I am a
-              <select value={f.affiliation} onChange={set('affiliation')}>
-                {Object.entries(AFFILIATIONS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-              </select>
-            </label>
-          </>
-        )}
-        <label>Email
-          <input type="email" value={f.email} onChange={set('email')} autoComplete="email" required />
-        </label>
-        <label>Password
-          <input type="password" value={f.password} onChange={set('password')}
-            autoComplete={mode === 'login' ? 'current-password' : 'new-password'} minLength={8} required />
-        </label>
-        {err && <p className="err" role="alert">{err}</p>}
-        {notice && <p className="note" role="status">{notice}</p>}
-        <button className="btn btn-primary" disabled={busy}>{busy ? 'Please wait…' : mode === 'login' ? 'Log in' : 'Create account'}</button>
-      </form>
-      <p className="row">
-        <button type="button" className="linkbtn" onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setErr(''); setNotice('') }}>
-          {mode === 'login' ? 'Create an account' : 'I already have an account'}
-        </button>
-        {mode === 'login' && <button type="button" className="linkbtn" onClick={forgot}>Forgot password</button>}
-      </p>
+    <main className="auth">
+      <aside className="auth-side">
+        <div className="stickers stickers-row" aria-hidden="true">
+          <span className="tag tag-free sticker s1">Free</span>
+          <span className="tag tag-swap sticker s2">Swap</span>
+          <span className="tag tag-sell sticker s3">For sale</span>
+        </div>
+        <h1>{login ? 'Welcome back' : 'Join your campus swap'}</h1>
+        <p>Give away what you are done with. Find what you need next.</p>
+        <ul className="perks">
+          <li>Post an item in under a minute</li>
+          <li>Chat inside the app, no phone number needed</li>
+          <li>Get an alert when someone replies</li>
+        </ul>
+      </aside>
+
+      <section className="auth-card">
+        <h2>{login ? 'Log in' : 'Create your account'}</h2>
+        <p className="muted">
+          {login
+            ? 'Log in to post items and message other students.'
+            : 'Use a personal email so your account still works after you graduate.'}
+        </p>
+        <form onSubmit={submit} className="form">
+          {!login && (
+            <>
+              <label>Display name
+                <input value={f.name} onChange={set('name')} maxLength={40} autoComplete="nickname" required />
+              </label>
+              <div className="two">
+                <label>Program
+                  <input value={f.program} onChange={set('program')} maxLength={30} />
+                </label>
+                <label>I am a
+                  <select value={f.affiliation} onChange={set('affiliation')}>
+                    {Object.entries(AFFILIATIONS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  </select>
+                </label>
+              </div>
+            </>
+          )}
+          <label>Email
+            <input type="email" value={f.email} onChange={set('email')} autoComplete="email" required />
+          </label>
+          <label>Password
+            <input type="password" value={f.password} onChange={set('password')}
+              autoComplete={login ? 'current-password' : 'new-password'} minLength={8} required />
+          </label>
+          {err && <p className="err" role="alert">{err}</p>}
+          {notice && <p className="note" role="status">{notice}</p>}
+          <button className="btn btn-primary btn-block" disabled={busy}>
+            {busy ? 'Please wait…' : login ? 'Log in' : 'Create account'}
+          </button>
+        </form>
+        <p className="row">
+          <button type="button" className="linkbtn" onClick={() => { setMode(login ? 'signup' : 'login'); setErr(''); setNotice('') }}>
+            {login ? 'Create an account' : 'I already have an account'}
+          </button>
+          {login && <button type="button" className="linkbtn" onClick={forgot}>Forgot password</button>}
+        </p>
+      </section>
     </main>
   )
 }

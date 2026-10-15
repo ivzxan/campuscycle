@@ -4,6 +4,7 @@ import { BUCKET, imageUrl, supabase } from '../supabase'
 import { useAuth } from '../auth'
 import { AFFILIATIONS, CATEGORIES, CONDITIONS, priceLine, timeAgo } from '../constants'
 import TypeTag from '../components/TypeTag'
+import Avatar from '../components/Avatar'
 
 function Gallery({ images, title }) {
   const [i, setI] = useState(0)
@@ -26,79 +27,110 @@ function Gallery({ images, title }) {
   )
 }
 
-const CONTACT_HEADING = {
+const HEADING = {
   sell: 'Message the seller',
   free: 'Ask for this item',
   swap: 'Propose a swap',
   looking_for: 'Have this? Let them know',
 }
+const QUICK = {
+  sell: ['Is this still available?', 'Where can we meet?'],
+  free: ['Is this still available?', 'When can I pick it up?'],
+  swap: ['Is this still available?', 'What would you swap for?'],
+  looking_for: ['I have this.', 'Can I send you a photo?'],
+}
 
-function ContactForm({ listing, user }) {
-  const [sent, setSent] = useState(undefined)
-  const [message, setMessage] = useState('')
-  const [contact, setContact] = useState('')
-  const [err, setErr] = useState('')
+function ChatStarter({ listing, user }) {
+  const nav = useNavigate()
+  const [convId, setConvId] = useState(undefined)
+  const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
 
   useEffect(() => {
-    supabase.from('contact_requests').select('id').eq('listing_id', listing.id).eq('from_user', user.id).maybeSingle()
-      .then(({ data }) => setSent(Boolean(data)))
+    supabase.from('conversations').select('id').eq('listing_id', listing.id).eq('starter_id', user.id).maybeSingle()
+      .then(({ data }) => setConvId(data?.id || null))
   }, [listing.id, user.id])
 
-  async function submit(e) {
+  async function send(e) {
     e.preventDefault()
+    const body = text.trim()
+    if (!body) return
     setErr('')
     setBusy(true)
-    const { error } = await supabase.from('contact_requests').insert({
-      listing_id: listing.id,
-      message: message.trim(),
-      contact: contact.trim(),
-    })
-    setBusy(false)
-    if (!error) return setSent(true)
-    if (error.code === '23505') return setSent(true)
-    setErr(error.message)
+    let id = convId
+    if (!id) {
+      const { data, error } = await supabase.from('conversations').insert({ listing_id: listing.id }).select('id').single()
+      if (error) {
+        if (error.code === '23505') {
+          const r = await supabase.from('conversations').select('id').eq('listing_id', listing.id).eq('starter_id', user.id).single()
+          id = r.data?.id
+        } else {
+          setErr(error.message)
+          setBusy(false)
+          return
+        }
+      } else id = data.id
+    }
+    const { error: e2 } = await supabase.from('messages').insert({ conversation_id: id, body })
+    if (e2) {
+      setErr(e2.message)
+      setBusy(false)
+      return
+    }
+    nav(`/messages/${id}`)
   }
 
-  if (sent === undefined) return null
-  if (sent) return <p className="note" role="status">Message sent. The poster can now see how to reach you.</p>
+  if (convId === undefined) return null
+  if (convId) {
+    return (
+      <div className="panel">
+        <h2>You are already chatting</h2>
+        <p className="muted">Continue the conversation about this listing.</p>
+        <Link to={`/messages/${convId}`} className="btn btn-primary">Open chat</Link>
+      </div>
+    )
+  }
   return (
-    <form onSubmit={submit} className="form panel">
-      <h2>{CONTACT_HEADING[listing.type]}</h2>
-      <label>Your message
-        <textarea value={message} onChange={(e) => setMessage(e.target.value)} maxLength={500} rows={3} required
-          placeholder="Hi, is this still available?" />
+    <form onSubmit={send} className="form panel">
+      <h2>{HEADING[listing.type]}</h2>
+      <div className="quick">
+        {QUICK[listing.type].map((q) => (
+          <button key={q} type="button" className="chip" onClick={() => setText(q)}>{q}</button>
+        ))}
+      </div>
+      <label className="sr-label">Your message
+        <textarea value={text} onChange={(e) => setText(e.target.value)} maxLength={1000} rows={3} required
+          placeholder="Write a message" />
       </label>
-      <label>How can they reach you?
-        <input value={contact} onChange={(e) => setContact(e.target.value)} maxLength={100} minLength={3} required
-          placeholder="Messenger name or mobile number" />
-      </label>
-      <p className="muted small">Only the poster will see your contact details.</p>
       {err && <p className="err" role="alert">{err}</p>}
-      <button className="btn btn-primary" disabled={busy}>{busy ? 'Sending…' : 'Send message'}</button>
+      <button className="btn btn-primary" disabled={busy || !text.trim()}>{busy ? 'Sending…' : 'Send message'}</button>
     </form>
   )
 }
 
-function Requests({ listingId }) {
+function OwnerChats({ listingId }) {
   const [rows, setRows] = useState(null)
   useEffect(() => {
-    supabase.from('contact_requests')
-      .select('id,message,contact,created_at,profiles(display_name)')
-      .eq('listing_id', listingId).order('created_at', { ascending: false })
+    supabase.from('conversations')
+      .select('id,last_message,last_message_at,starter:profiles!starter_id(display_name,avatar_color)')
+      .eq('listing_id', listingId).order('last_message_at', { ascending: false })
       .then(({ data }) => setRows(data || []))
   }, [listingId])
   if (rows === null) return null
   return (
     <section className="panel">
-      <h2>Messages ({rows.length})</h2>
-      {rows.length === 0 && <p className="muted">No messages yet.</p>}
+      <h2>Chats about this listing ({rows.length})</h2>
+      {rows.length === 0 && <p className="muted">No one has messaged yet.</p>}
       {rows.map((r) => (
-        <article key={r.id} className="req">
-          <p><strong>{r.profiles?.display_name || 'Student'}</strong>, {timeAgo(r.created_at)}</p>
-          <p className="pre">{r.message}</p>
-          <p>Reach them at: <strong>{r.contact}</strong></p>
-        </article>
+        <Link key={r.id} to={`/messages/${r.id}`} className="conv">
+          <Avatar profile={r.starter} size={40} />
+          <div className="conv-text">
+            <strong>{r.starter?.display_name}</strong>
+            <span className="muted">{r.last_message}</span>
+          </div>
+          <span className="muted small">{timeAgo(r.last_message_at)}</span>
+        </Link>
       ))}
     </section>
   )
@@ -145,7 +177,7 @@ export default function ListingPage() {
   useEffect(() => {
     setL(undefined)
     supabase.from('listings')
-      .select('*, listing_images(id,path,thumb_path,position), profiles(display_name,program,affiliation)')
+      .select('*, listing_images(id,path,thumb_path,position), profiles(id,display_name,program,affiliation,avatar_color)')
       .eq('id', id).maybeSingle()
       .then(({ data }) => setL(data))
   }, [id])
@@ -175,7 +207,7 @@ export default function ListingPage() {
     const paths = imgs.flatMap((i) => [i.path, i.thumb_path])
     if (paths.length) await supabase.storage.from(BUCKET).remove(paths)
     const { error } = await supabase.from('listings').delete().eq('id', l.id)
-    if (!error) nav('/my', { replace: true })
+    if (!error) nav('/me', { replace: true })
   }
 
   return (
@@ -187,13 +219,19 @@ export default function ListingPage() {
         <p className="big">{priceLine(l)}</p>
         {done && <p className="note">This one is no longer available.</p>}
 
+        <Link to={`/u/${l.user_id}`} className="poster">
+          <Avatar profile={l.profiles} size={44} />
+          <span>
+            <strong>{l.profiles?.display_name}</strong>
+            <small>{l.profiles?.program} {AFFILIATIONS[l.profiles?.affiliation]?.toLowerCase()}</small>
+          </span>
+        </Link>
+
         <dl className="facts">
           <dt>Category</dt><dd>{CATEGORIES[l.category]}</dd>
           {l.course && <><dt>Subject</dt><dd>{l.course}</dd></>}
           {l.condition && <><dt>Condition</dt><dd>{CONDITIONS[l.condition]}</dd></>}
           <dt>Posted</dt><dd>{timeAgo(l.created_at)}</dd>
-          <dt>Posted by</dt>
-          <dd>{l.profiles?.display_name}, {l.profiles?.program} {AFFILIATIONS[l.profiles?.affiliation]?.toLowerCase()}</dd>
         </dl>
         {l.description && <p className="pre">{l.description}</p>}
 
@@ -206,11 +244,11 @@ export default function ListingPage() {
               </button>
               <button type="button" className="btn btn-danger" onClick={remove}>Delete</button>
             </div>
-            <Requests listingId={l.id} />
+            <OwnerChats listingId={l.id} />
           </>
         ) : !done && (
           user ? (
-            <ContactForm listing={l} user={user} />
+            <ChatStarter listing={l} user={user} />
           ) : (
             <p className="panel">
               <Link to="/login" state={{ from: `/listing/${l.id}` }}>Log in</Link> to message the poster.

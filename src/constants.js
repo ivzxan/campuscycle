@@ -58,3 +58,32 @@ export function timeAgo(iso) {
   if (days < 30) return `${days} day${days === 1 ? '' : 's'} ago`
   return new Date(iso).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
 }
+
+export const AVATAR_COLORS = {
+  indigo: '#3f4bc8',
+  teal: '#0e7c86',
+  green: '#2e7d32',
+  amber: '#b26a00',
+  rose: '#c2335a',
+  violet: '#7b45c9',
+  slate: '#4b5563',
+  sky: '#1d6fb8',
+}
+
+export function initials(name = '') {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (!parts.length) return '?'
+  return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase()
+}
+
+export function dayLabel(iso) {
+  const d = new Date(iso)
+  const today = new Date()
+  const diff = Math.round((new Date(today.toDateString()) - new Date(d.toDateString())) / 86400000)
+  if (diff === 0) return 'Today'
+  if (diff === 1) return 'Yesterday'
+  return d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })
+}
+
+export const clock = (iso) =>
+  new Date(iso).toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit' })

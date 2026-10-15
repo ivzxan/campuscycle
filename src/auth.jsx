@@ -1,8 +1,10 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { supabase } from './supabase'
 
-const Ctx = createContext({ user: null, profile: null, loading: true, signOut() {} })
+const Ctx = createContext({ user: null, profile: null, loading: true, signOut() {}, refreshProfile() {} })
 export const useAuth = () => useContext(Ctx)
+
+const PROFILE_COLS = 'id,display_name,program,affiliation,bio,avatar_color,created_at'
 
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(undefined)
@@ -15,18 +17,13 @@ export function AuthProvider({ children }) {
   }, [])
 
   const uid = session?.user?.id
-  useEffect(() => {
-    if (!uid) {
-      setProfile(null)
-      return
-    }
-    supabase
-      .from('profiles')
-      .select('display_name,program,affiliation')
-      .eq('id', uid)
-      .maybeSingle()
-      .then(({ data }) => setProfile(data))
+  const refreshProfile = useCallback(async () => {
+    if (!uid) return setProfile(null)
+    const { data } = await supabase.from('profiles').select(PROFILE_COLS).eq('id', uid).maybeSingle()
+    setProfile(data)
   }, [uid])
+
+  useEffect(() => { refreshProfile() }, [refreshProfile])
 
   const value = useMemo(
     () => ({
@@ -34,8 +31,9 @@ export function AuthProvider({ children }) {
       profile,
       loading: session === undefined,
       signOut: () => supabase.auth.signOut(),
+      refreshProfile,
     }),
-    [session, profile]
+    [session, profile, refreshProfile]
   )
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

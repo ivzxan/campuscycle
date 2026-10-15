@@ -15,7 +15,7 @@ export default function Reset() {
     if (password.length < 8) return setErr('Use a password with at least 8 characters.')
     setBusy(true)
     const { error } = await supabase.auth.updateUser({ password })
-    if (error) { setErr(error.message); setBusy(false) } else nav('/my', { replace: true })
+    if (error) { setErr(error.message); setBusy(false) } else nav('/me', { replace: true })
   }
 
   if (loading) return <p className="wrap status">Loading…</p>

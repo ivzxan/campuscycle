@@ -82,57 +82,70 @@ export default function Browse() {
   }
 
   return (
-    <main className="wrap">
-      <section className="intro">
-        <h1>Find it or pass it on</h1>
-        <p>Books, components, and materials from BSIS students and alumni.</p>
-      </section>
-
-      <div className="filters">
-        <input
-          type="search"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Search items or subjects"
-          aria-label="Search listings"
-        />
-        <div className="chips" role="group" aria-label="Listing type">
-          <button type="button" className="chip" aria-pressed={!type} onClick={() => setParam('type', '')}>All</button>
-          {Object.entries(TYPES).map(([k, v]) => (
-            <button key={k} type="button" className="chip" aria-pressed={type === k} onClick={() => setParam('type', k)}>
-              {v.label}
-            </button>
-          ))}
-        </div>
-        <select value={cat} onChange={(e) => setParam('cat', e.target.value)} aria-label="Category">
-          <option value="">All categories</option>
-          {Object.entries(CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-        </select>
-      </div>
-
-      {error && <p className="err" role="alert">{error}</p>}
-
-      {items.length > 0 && (
-        <div className="grid">
-          {items.map((l) => <ListingCard key={l.id} l={l} />)}
-        </div>
-      )}
-
-      {!loading && !error && items.length === 0 && (
-        <div className="empty">
-          <h2>Nothing here yet</h2>
-          <p>Post what you no longer need, or ask for what you are looking for.</p>
-          <div className="row">
-            <Link to="/post" className="btn btn-primary">Post an item</Link>
-            <Link to="/post?type=looking_for" className="btn">Post what you need</Link>
+    <main>
+      <section className="hero">
+        <div className="wrap hero-in">
+          <div className="hero-copy">
+            <h1>Pass it on.<br />Find what you need.</h1>
+            <p>Books, components, and materials from BSIS students and alumni.</p>
+            <input
+              type="search"
+              className="hero-search"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Search Arduino, books, uniforms…"
+              aria-label="Search listings"
+            />
+          </div>
+          <div className="stickers" aria-hidden="true">
+            <span className="tag tag-free sticker s1">Free</span>
+            <span className="tag tag-swap sticker s2">Swap</span>
+            <span className="tag tag-sell sticker s3">For sale</span>
+            <span className="tag tag-looking_for sticker s4">Looking For</span>
           </div>
         </div>
-      )}
+      </section>
 
-      {loading && <p className="status">Loading…</p>}
-      {!loading && more && (
-        <p className="center"><button type="button" className="btn" onClick={loadMore}>Show more</button></p>
-      )}
+      <div className="wrap">
+        <div className="filters">
+          <div className="chips" role="group" aria-label="Listing type">
+            <button type="button" className="chip" aria-pressed={!type} onClick={() => setParam('type', '')}>All</button>
+            {Object.entries(TYPES).map(([k, v]) => (
+              <button key={k} type="button" className="chip" aria-pressed={type === k} onClick={() => setParam('type', k)}>
+                {v.label}
+              </button>
+            ))}
+          </div>
+          <select value={cat} onChange={(e) => setParam('cat', e.target.value)} aria-label="Category">
+            <option value="">All categories</option>
+            {Object.entries(CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+        </div>
+
+        {error && <p className="err" role="alert">{error}</p>}
+
+        {items.length > 0 && (
+          <div className="grid">
+            {items.map((l) => <ListingCard key={l.id} l={l} />)}
+          </div>
+        )}
+
+        {!loading && !error && items.length === 0 && (
+          <div className="empty">
+            <h2>Nothing here yet</h2>
+            <p>Post what you no longer need, or ask for what you are looking for.</p>
+            <div className="row">
+              <Link to="/post" className="btn btn-primary">Post an item</Link>
+              <Link to="/post?type=looking_for" className="btn">Post what you need</Link>
+            </div>
+          </div>
+        )}
+
+        {loading && <p className="status">Loading…</p>}
+        {!loading && more && (
+          <p className="center"><button type="button" className="btn" onClick={loadMore}>Show more</button></p>
+        )}
+      </div>
     </main>
   )
 }

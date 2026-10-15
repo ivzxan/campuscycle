@@ -38,7 +38,7 @@ export default function ListingForm() {
       .select('*, listing_images(id,path,thumb_path,position)')
       .eq('id', id).maybeSingle()
       .then(({ data }) => {
-        if (!data || data.user_id !== user.id) return nav('/my', { replace: true })
+        if (!data || data.user_id !== user.id) return nav('/me', { replace: true })
         setF({
           type: data.type, title: data.title, category: data.category, course: data.course || '',
           condition: data.condition || 'good', price: data.price ?? '', swap_for: data.swap_for || '',
